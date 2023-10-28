@@ -44,8 +44,9 @@ const singleTones = [["G3", "A3", "B3", "C4"], ["C4", "D4", "E4", "F4"], ["G4", 
 let leftTrigger = [false, false, false, false];
 let rightTrigger = [false, false, false, false];
 
+let osc = null;
+
 function setup() {
-  // createCanvas(640, 480);
   capture = createCapture(VIDEO);
   // createCanvas(capture.width, capture.height);
   // 映像をロードできたらキャンバスの大きさを設定
@@ -54,14 +55,8 @@ function setup() {
     orgWidth = capture.width;
     orgHeight = capture.height;
     let canvas = createCanvas(capture.width, capture.height);
-    // let canvas = createCanvas(windowWidth, orgHeight * (windowWidth/orgWidth)*0.9);
-    // let canvas = createCanvas(window.innerWidth*(window.innerHeight/orgHeight), window.innerHeight*0.85);
-    // let canvas = createCanvas(windowWidth, windowHeight*0.9);
     pWindowWidth = windowWidth;
-    // canvas.position(0, window.innerHeight/10);
   };
-
-  
 
   // handsfreeのhandモデルを準備
   handsfree = new Handsfree({
@@ -69,10 +64,8 @@ function setup() {
     hands: true,
     // The maximum number of hands to detect [0 - 4]
     maxNumHands: 2,
-
     // Minimum confidence [0 - 1] for a hand to be considered detected
     minDetectionConfidence: 1.0,
-
     // Minimum confidence [0 - 1] for the landmark tracker to be considered detected
     // Higher values are more robust at the expense of higher latency
     minTrackingConfidence: 1.0
@@ -85,6 +78,8 @@ function setup() {
 
   // 映像を非表示化
   capture.hide();
+
+  osc = new p5.Oscillator("sine")
 }
 
 function draw() {
@@ -94,39 +89,13 @@ function draw() {
     image(capture, 0, 0, width, height);
     pop();
 
-//   line(0, height/3, width, height/3);
-//   line(0, height*2/3, width, height*2/3);
-
     // 手の頂点を表示
-    drawDoubleHands();
-   
-
-//   updateView();
+    drawHands();
+    playOsc();
 }
 
-// function updateView(){
-//   if(pWindowWidth != windowWidth){
-//     // resizeCanvas(windowWidth, windowHeight);
-//     resizeCanvas(windowWidth, orgHeight * (windowWidth/orgWidth)*0.9);
-//     sizeButton = [windowWidth/10, windowHeight/10];
-//     buttonStop.size(sizeButton[0], sizeButton[1]-20);
-//     buttonStop.position(0, 5);
-//     buttonLoading.size(sizeButton[0], sizeButton[1]-20);
-//     buttonLoading.position(0, 5);
-//     buttonRunning.size(sizeButton[0], sizeButton[1]-20);
-//     buttonRunning.position(0, 5);
-//     buttonView.size(sizeButton[0], sizeButton[1]-20);
-//     buttonView.position(sizeButton[0], 5);
-//     buttonTrack.size(sizeButton[0], sizeButton[1]-20);
-//     buttonTrack.position(sizeButton[0]*2, 5);
-//     sliderVelocity.position(sizeButton[0]*3+30, sizeButton[1]/2-15);
-//     radioMode.position(sizeButton[0]*3+30, sizeButton[1]/2+15);
-//   }
-//   pWindowWidth = windowWidth;
-// }
-
-
-function drawDoubleHands() {
+let point = null;
+function drawHands() {
   
   const hands = handsfree.data?.hands;
 
@@ -145,50 +114,20 @@ function drawDoubleHands() {
       // 指先だけ色を変更
       push();
       switch (landmarkIndex) {
-        // case 4:
-        //   fill(palette[0]);
-        //   break;
-        // case 8:
-        //   fill(palette[1]);
-        //   break;
-        // case 12:
-        //   fill(palette[2]);
-        //   break;
-        // case 16:
-        //   fill(palette[3]);
-        //   break;
-        // case 20:
-        //   fill(palette[4]);
-        //   break;
         case 4:
           fill("#9b5de5");
           circle(width - landmark.x * width, landmark.y * height, circleSize*2);
           break;
         case 8:
+          point = landmark.y;
         case 12:
         case 16:
         case 20:
-          // print(note_colors)
-          // print(note_colors[handIndex][landmarkIndex]);
           fill(note_colors[label][landmarkIndex][1]);
-          // fill(color(note_colors[handIndex][landmarkIndex][1][0], note_colors[handIndex][landmarkIndex][1][1], note_colors[handIndex][landmarkIndex][1][2]));
           circle(width - landmark.x * width, landmark.y * height, circleSize*2);
-          // circle(width - landmark.x * width, landmark.y * height, circleSize);
-          fill("#000000");
-          textSize(16);
-          textStyle(BOLD);
-          text(note_colors[label][landmarkIndex][0], width - landmark.x * width-textWidth(note_colors[label][landmarkIndex][0])/2, landmark.y * height+textWidth(note_colors[label][landmarkIndex][0])/2);
           break;
         case 21:
-          let y = landmark.y*height;
-          print(landmark.y, y, height/3);
-          if(y < height/3){
-            toneShift[label] = 2;
-          }else if(y >= height/3 && y < height*2/3){
-            toneShift[label] = 1;
-          }else{
-            toneShift[label] = 0;
-          }
+
           fill(color(255, 255, 255));
           circle(width - landmark.x * width, landmark.y * height, circleSize);
           break;
@@ -200,7 +139,21 @@ function drawDoubleHands() {
       // circle(width - landmark.x * width, landmark.y * height, circleSize);
     });
   });
+}
 
-  // console.log(handsfree.data.hands.pinchState[0])
-  
+let isPlaying = false;
+function playOsc(){
+  if(mouseIsPressed){
+    if(!isPlaying){
+      osc.start();
+    }
+    osc.amp(mouseY/height);
+    osc.freq(440*(1-point)+220);
+    isPlaying = true;
+  } 
+}
+
+function mouseReleased(){
+  osc.stop();
+  isPlaying = false;
 }
